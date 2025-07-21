@@ -4,7 +4,7 @@ import time
 import math
 
 # assumption about servo performance
-SERVO_RPM: int = 60
+SERVO_RPM: int = 50
 
 # signifance of distance difference between center and center of face
 K_P: float = 60
@@ -18,7 +18,7 @@ def positionChange(current: float, target: float, dt: float) -> float:
     changeRequested: float = target-current
     if abs(changeRequested) < maxChangePossible:
         return changeRequested
-    return copysign(maxChangePossible, changeRequested)
+    return math.copysign(maxChangePossible, changeRequested)
 
 def clipNumber(number: float, minimum: float, maximum: float) -> float:
     return minimum if number < minimum else \
