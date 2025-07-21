@@ -26,7 +26,7 @@ def clipNumber(number: float, minimum: float, maximum: float) -> float:
            number
 
 # Replace COM5 with your Arduino's actual port
-# arduino = serial.Serial('COM5', 9600)
+arduino = serial.Serial('COM5', 9600)
 time.sleep(2)  # Let Arduino initialize
 
 cap = cv2.VideoCapture(0)
@@ -69,7 +69,7 @@ while True:
         
         if lastPositionGiven != round(servoTarget):
             lastPositionGiven = round(servoTarget)
-            #ardunio.write(bytes([lastPositionGiven]))
+            ardunio.write(bytes([lastPositionGiven]))
             print(f"Sent to Arduino: {lastPositionGiven}")
 
         #draws the bounding rect I believe?
