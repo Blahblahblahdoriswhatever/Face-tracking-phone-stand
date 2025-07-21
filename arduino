@@ -1,0 +1,32 @@
+#include <Servo.h>
+
+
+Servo myServo;
+
+
+void setup() {
+  myServo.attach(9);       // Servo signal wire to pin 9
+  Serial.begin(9600);
+  myServo.write(90);       // Start centered
+}
+
+
+void loop() {
+  if (Serial.available() > 0) {
+    char cmd = Serial.read();
+    Serial.print("Received: ");
+    Serial.println(cmd);
+
+
+    if (cmd == 'L') {
+      myServo.write(30);   // Left
+    } else if (cmd == 'R') {
+      myServo.write(150);  // Right
+    } else if (cmd == 'C') {
+      myServo.write(90);   // Center
+    }
+  }
+}
+
+
+
