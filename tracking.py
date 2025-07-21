@@ -1,9 +1,32 @@
 import cv2
 import serial
 import time
+import math
+
+# assumption about servo performance
+SERVO_RPM: int = 60
+
+# signifance of distance difference between center and center of face
+K_P: float = 60
+
+servoPosition: float = 90
+servoTarget: float = 90
+lastPositionGiven: int = 90
+
+def positionChange(current: float, target: float, dt: float) -> float:
+    maxChangePossible: float = SERVO_RPM * 6 * dt
+    changeRequested: float = target-current
+    if abs(changeRequested) < maxChangePossible:
+        return changeRequested
+    return copysign(maxChangePossible, changeRequested)
+
+def clipNumber(number: float, minimum: float, maximum: float) -> float:
+    return minimum if number < minimum else \
+           maximum if number > maximum else \
+           number
 
 # Replace COM5 with your Arduino's actual port
-arduino = serial.Serial('COM5', 9600)
+# arduino = serial.Serial('COM5', 9600)
 time.sleep(2)  # Let Arduino initialize
 
 cap = cv2.VideoCapture(0)
@@ -12,9 +35,12 @@ ret, frame1 = cap.read()
 frame1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 frame1 = cv2.GaussianBlur(frame1, (21, 21), 0)
 
-last_direction = None
+
+startTime: float = 0
+dt: float = 0
 
 while True:
+    startTime = time.perf_counter()
     ret, frame2 = cap.read()
     if not ret:
         break
@@ -36,19 +62,17 @@ while True:
         center_x = x + w // 2
         frame_width = frame2.shape[1]
 
-        if center_x < frame_width // 3:
-            direction = 'L'
-        elif center_x > 2 * frame_width // 3:
-            direction = 'R'
-        else:
-            direction = 'C'
+        #find the difference between center and face center [-1, 1]
+        difference: float = 2*(center_x - (frame_width//2)) / frame_width
+        servoTarget = servoPosition + difference * K_P;
+        servoTarget = clipNumber(servoTarget, 0, 180);
+        
+        if lastPositionGiven != round(servoTarget):
+            lastPositionGiven = round(servoTarget)
+            #ardunio.write(bytes([lastPositionGiven]))
+            print(f"Sent to Arduino: {lastPositionGiven}")
 
-        # Only send if direction has changed
-        if direction != last_direction:
-            arduino.write(direction.encode())
-            print(f"Sent to Arduino: {direction}")
-            last_direction = direction
-
+        #draws the bounding rect I believe?
         cv2.rectangle(frame2, (x, y), (x + w, y + h), (0, 255, 0), 2)
         break  # Track only first motion blob
 
@@ -57,9 +81,10 @@ while True:
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+    dt = time.perf_counter() - startTime;
+    servoPosition += positionChange(servoPosition, servoTarget, dt)
+    servoPosition = clipNumber(servoPosition, 0, 180);
 
 cap.release()
 cv2.destroyAllWindows()
 arduino.close()
-
-
